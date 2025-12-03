@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from 'react'; // SINTAKS DIPERBAIKI: Menggunakan 'from'
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Sidebar.css';
 
@@ -7,10 +7,19 @@ function Sidebar() {
   const location = useLocation();
   const [activeMenu, setActiveMenu] = useState(location.pathname);
 
+  // URUTAN MENU BARU SESUAI PERMINTAAN:
+  // 1. Home
+  // 2. Dataset (CRUD)
+  // 3. Games (Daftar & Filter)
+  // 4. Dashboard (Analisis)
   const menuItems = [
     { id: 'home', path: '/', icon: '🏠', label: 'Home' },
-    { id: 'dataset', path: '/dataset', icon: '📁', label: 'Dataset' },
-    { id: 'games', path: '/games', icon: '🎮', label: 'Games' },
+    // Konten Dataset (Upload, Input, Edit, Delete)
+    { id: 'dataset', path: '/dataset', icon: '📁', label: 'Dataset (CRUD)' },
+    // Konten Games (Tabel, Search, Filter)
+    { id: 'games', path: '/games', icon: '🎮', label: 'Games (Data)' },
+    // Konten Dashboard (Visualisasi & Analisis)
+    { id: 'dashboard', path: '/dashboard', icon: '📊', label: 'Dashboard (Analisis)' }, 
   ];
 
   const handleMenuClick = (path) => {

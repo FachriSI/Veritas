@@ -5,6 +5,7 @@ import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Dataset from './pages/Dataset'
 import Games from './pages/Games'
+import Dashboard from './components/Dashboard' // Import Dashboard untuk rute baru
 
 function App() {
   return (
@@ -15,9 +16,14 @@ function App() {
           <Navbar />
           <div className="content-wrapper">
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/dataset" element={<Dataset />} />
+              {/* Rute Utama */}
+              <Route path="/" element={<Home />} /> 
+              {/* Rute CRUD Data */}
+              <Route path="/dataset" element={<Dataset />} /> 
+              {/* Rute Tampilan Data & Filter */}
               <Route path="/games" element={<Games />} />
+              {/* Rute Analisis & Visualisasi BARU */}
+              <Route path="/dashboard" element={<Dashboard />} /> 
             </Routes>
           </div>
         </div>
