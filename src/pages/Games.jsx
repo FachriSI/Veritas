@@ -9,8 +9,8 @@ function Games() {
   const [filteredGames, setFilteredGames] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // State untuk Multi-select Filters
-  const [selectedGenres, setSelectedGenres] = useState([]);
+  // State untuk Multi-select Filters (MENGGANTI GENRES DENGAN TAGS)
+  const [selectedTags, setSelectedTags] = useState([]); // Diubah dari selectedGenres
   const [selectedReviewTypes, setSelectedReviewTypes] = useState([]);
   
   const [loading, setLoading] = useState(false);
@@ -23,38 +23,38 @@ function Games() {
   const loadGamesFromCSV = useCallback(async () => {
     setLoading(true);
     try {
-      // Dummy data untuk template
+      // Dummy data untuk template. Sekarang menggunakan kolom 'tags' sebagai kategori utama.
       const dummyData = [
         { 
           id: 1, 
           title: 'The Witcher 3: Wild Hunt', 
-          genre: 'RPG', 
+          // genre: 'RPG', <-- DIHAPUS
           review_type: 'Positive',
           rating: 9.8, 
           platform: 'PC, PS4, Xbox', 
           release_date: '2015-05-19',
           price: 39.99,
-          tags: 'RPG, Open World, Fantasy'
+          tags: 'RPG, Open World, Fantasy, Action-Adventure' // Tags ada di CSV mentah
         },
         { 
           id: 2, 
           title: 'Cyberpunk 2077', 
-          genre: 'Action RPG', 
+          // genre: 'Action RPG', <-- DIHAPUS
           review_type: 'Mixed',
           rating: 8.5, 
           platform: 'PC, PS5, Xbox', 
           release_date: '2020-12-10',
           price: 59.99,
-          tags: 'RPG, Sci-Fi, Open World'
+          tags: 'Sci-Fi, Open World, Action, RPG, Cyberpunk'
         },
-        { id: 3, title: 'Red Dead Redemption 2', genre: 'Adventure', review_type: 'Positive', rating: 9.7, platform: 'PC, PS4, Xbox', release_date: '2019-12-05', price: 59.99, tags: 'Open World, Western' },
-        { id: 4, title: 'Baldur\'s Gate 3', genre: 'RPG', review_type: 'Positive', rating: 9.6, platform: 'PC, PS5', release_date: '2023-08-03', price: 69.99, tags: 'RPG, Fantasy, Turn-Based' },
-        { id: 5, title: 'Halo Infinite', genre: 'Shooter', review_type: 'Mixed', rating: 8.0, platform: 'PC, Xbox', release_date: '2021-12-08', price: 59.99, tags: 'FPS, Sci-Fi' },
-        { id: 6, title: 'Stardew Valley', genre: 'Simulation', review_type: 'Positive', rating: 9.9, platform: 'PC, Switch, Mobile', release_date: '2016-02-26', price: 14.99, tags: 'Farming Sim, Pixel Graphics' },
-        { id: 7, title: 'Elden Ring', genre: 'Action RPG', review_type: 'Positive', rating: 9.5, platform: 'PC, PS5, Xbox', release_date: '2022-02-25', price: 59.99, tags: 'Souls-like, Open World, Fantasy' },
-        { id: 8, title: 'Among Us', genre: 'Party', review_type: 'Negative', rating: 7.5, platform: 'PC, Mobile, Switch', release_date: '2018-11-16', price: 4.99, tags: 'Multiplayer, Social Deduction' },
-        { id: 9, title: 'FIFA 24', genre: 'Sports', review_type: 'Negative', rating: 7.0, platform: 'PC, PS5, Xbox', release_date: '2023-09-29', price: 69.99, tags: 'Soccer, Simulation' },
-        { id: 10, title: 'Resident Evil 4', genre: 'Survival Horror', review_type: 'Positive', rating: 9.0, platform: 'PC, PS5, Xbox', release_date: '2023-03-24', price: 59.99, tags: 'Horror, Action, Remake' },
+        { id: 3, title: 'Red Dead Redemption 2', review_type: 'Positive', rating: 9.7, platform: 'PC, PS4, Xbox', release_date: '2019-12-05', price: 59.99, tags: 'Open World, Western, Adventure, Action' },
+        { id: 4, title: 'Baldur\'s Gate 3', review_type: 'Positive', rating: 9.6, platform: 'PC, PS5', release_date: '2023-08-03', price: 69.99, tags: 'RPG, Fantasy, Turn-Based, Strategy' },
+        { id: 5, title: 'Halo Infinite', review_type: 'Mixed', rating: 8.0, platform: 'PC, Xbox', release_date: '2021-12-08', price: 59.99, tags: 'FPS, Sci-Fi, Shooter, Multiplayer' },
+        { id: 6, title: 'Stardew Valley', review_type: 'Positive', rating: 9.9, platform: 'PC, Switch, Mobile', release_date: '2016-02-26', price: 14.99, tags: 'Farming Sim, Pixel Graphics, Simulation' },
+        { id: 7, title: 'Elden Ring', review_type: 'Positive', rating: 9.5, platform: 'PC, PS5, Xbox', release_date: '2022-02-25', price: 59.99, tags: 'Souls-like, Open World, Fantasy, Action, Difficult' },
+        { id: 8, title: 'Among Us', review_type: 'Negative', rating: 7.5, platform: 'PC, Mobile, Switch', release_date: '2018-11-16', price: 4.99, tags: 'Multiplayer, Social Deduction, Party Game' },
+        { id: 9, title: 'FIFA 24', review_type: 'Negative', rating: 7.0, platform: 'PC, PS5, Xbox', release_date: '2023-09-29', price: 69.99, tags: 'Soccer, Simulation, Sports' },
+        { id: 10, title: 'Resident Evil 4', review_type: 'Positive', rating: 9.0, platform: 'PC, PS5, Xbox', release_date: '2023-03-24', price: 59.99, tags: 'Horror, Action, Remake, Survival' },
       ];
 
       setGames(dummyData);
@@ -71,14 +71,18 @@ function Games() {
     loadGamesFromCSV();
   }, [loadGamesFromCSV]);
 
-  // Semua Genre unik
-  const allGenres = [...new Set(games.map(game => game.genre))].sort();
+  // Semua TAGS unik dari semua game (Digunakan untuk tombol filter)
+  const allAvailableTags = Array.from(
+    new Set(games.flatMap(game => 
+      game.tags.split(',').map(tag => tag.trim())
+    ))
+  ).sort();
 
   // Logic Toggle Multi-Select Filters
   const toggleFilter = (filterName, value) => {
-    if (filterName === 'genre') {
-      setSelectedGenres(prev => 
-        prev.includes(value) ? prev.filter(g => g !== value) : [...prev, value]
+    if (filterName === 'tag') { // Diubah dari 'genre' menjadi 'tag'
+      setSelectedTags(prev => 
+        prev.includes(value) ? prev.filter(t => t !== value) : [...prev, value]
       );
     } else if (filterName === 'reviewType') {
       setSelectedReviewTypes(prev => 
@@ -91,9 +95,13 @@ function Games() {
   useEffect(() => {
     let filtered = games;
 
-    // 1. Filter by Genres (Multi-Select)
-    if (selectedGenres.length > 0) {
-      filtered = filtered.filter(game => selectedGenres.includes(game.genre));
+    // 1. Filter by TAGS (Multi-Select)
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter(game => {
+        // Cek apakah game memiliki SEMUA tag yang dipilih (AND condition)
+        const gameTags = game.tags.split(',').map(tag => tag.trim());
+        return selectedTags.every(selectedTag => gameTags.includes(selectedTag));
+      });
     }
 
     // 2. Filter by Review Types (Multi-Select)
@@ -105,15 +113,15 @@ function Games() {
     if (searchTerm) {
       filtered = filtered.filter(game =>
         game.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        game.developer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        game.tags?.toLowerCase().includes(searchTerm.toLowerCase())
+        game.tags?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        game.developer?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     setFilteredGames(filtered);
     // Reset ke halaman 1 setiap kali filter berubah
     setCurrentPage(1); 
-  }, [searchTerm, selectedGenres, selectedReviewTypes, games]);
+  }, [searchTerm, selectedTags, selectedReviewTypes, games]); // Diubah dari selectedGenres menjadi selectedTags
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -179,23 +187,24 @@ function Games() {
       <div className="card filters-container">
         <h4>Filter Data:</h4>
         
-        {/* Filter Genre */}
+        {/* Filter TAGS (MENGGANTIKAN GENRE) */}
         <div className="filter-group">
-            <p className="filter-label">Genre:</p>
-            <div className="filter-buttons">
-                {allGenres.map((genre) => (
+            <p className="filter-label">Tags:</p>
+            <div className="filter-buttons tag-filters">
+                {allAvailableTags.map((tag) => (
                     <button
-                        key={genre}
-                        className={`filter-btn ${selectedGenres.includes(genre) ? 'active' : ''}`}
-                        onClick={() => toggleFilter('genre', genre)}
+                        key={tag}
+                        className={`filter-btn ${selectedTags.includes(tag) ? 'active' : ''}`}
+                        onClick={() => toggleFilter('tag', tag)}
+                        title={`Filter berdasarkan tag: ${tag}`}
                     >
-                        {genre}
+                        {tag}
                     </button>
                 ))}
             </div>
         </div>
         
-        {/* Filter Review Type BARU */}
+        {/* Filter Review Type */}
         <div className="filter-group">
             <p className="filter-label">Review Type:</p>
             <div className="filter-buttons">
@@ -230,8 +239,8 @@ function Games() {
                   <thead>
                     <tr>
                       <th>Game Title</th>
-                      <th>Genre</th>
-                      <th>Review Type</th> {/* Tambahkan kolom Review Type */}
+                      <th>Tags</th> {/* Diubah dari Genre */}
+                      <th>Review Type</th> 
                       <th>Rating</th>
                       <th>Platform</th>
                       <th>Release Date</th>
@@ -243,7 +252,14 @@ function Games() {
                     {currentGames.map((game) => (
                       <tr key={game.id}>
                         <td className="game-title">{game.title}</td>
-                        <td>{game.genre}</td>
+                        {/* Menampilkan Tags dengan Tampilan Khusus (Badge/Tag) */}
+                        <td className="tags-column">
+                            {game.tags.split(',').map((tag, i) => (
+                                <span key={i} className="tag-display-badge">
+                                    {tag.trim()}
+                                </span>
+                            ))}
+                        </td>
                         <td>
                             <span className={`status-badge ${game.review_type.toLowerCase()}`}>{game.review_type}</span>
                         </td>
