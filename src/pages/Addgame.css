@@ -1,0 +1,107 @@
+/* src/pages/AddGame.css */
+.add-game {
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.add-game-header {
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.add-game-header h1 {
+    font-size: 1.8rem;
+    margin: 0 0 5px 0;
+    color: var(--text-color-primary);
+}
+
+.add-game-header p {
+    color: var(--text-color-secondary);
+    margin-top: 0;
+    font-size: 0.9rem;
+}
+
+.form-card {
+    padding: 30px;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: var(--shadow-small);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text-color-primary);
+    font-size: 0.95rem;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--input-border-color);
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 1rem;
+    background-color: var(--input-bg);
+    color: var(--text-color-primary);
+    transition: border-color 0.2s;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); /* Shadow warna hijau primary */
+}
+
+textarea {
+    resize: vertical;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 12px;
+    margin-top: 20px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Penyesuaian untuk tombol kembali */
+.btn-secondary {
+    background-color: var(--secondary-button-bg);
+    color: var(--secondary-button-text);
+    border: 1px solid var(--input-border-color);
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-secondary:hover {
+    background-color: var(--secondary-button-hover-bg);
+}

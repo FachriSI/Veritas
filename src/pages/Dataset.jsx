@@ -1,95 +1,119 @@
+// src/pages/Dataset.jsx
+import { useState } from 'react';
 import './Dataset.css';
 
 function Dataset() {
-  // Data ini nantinya akan di-fetch dari backend
-  const steamDataset = {
-    name: "Steam Games Dataset",
-    description: "Complete collection of Steam games with ratings, genres, and metadata",
-    totalGames: 2543,
-    lastUpdated: "2025-12-02",
-    size: "45.2 MB",
-    format: "CSV",
-    columns: [
-      "Game ID", "Title", "Genre", "Rating", "Release Date", 
-      "Developer", "Publisher", "Platform", "Price", "Tags"
-    ]
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Daftar format yang didukung sesuai dokumen (CSV/XLSX)
+  const supportedFormats = ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
+  const maxFileSizeMB = 100; // Contoh batas ukuran file
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (!supportedFormats.includes(file.type) && !file.name.endsWith('.csv')) {
+        setSelectedFile(null);
+        setUploadStatus('❌ Error: Format file harus .csv atau .xlsx.');
+        return;
+      }
+      if (file.size > maxFileSizeMB * 1024 * 1024) {
+        setSelectedFile(null);
+        setUploadStatus(`❌ Error: Ukuran file melebihi batas ${maxFileSizeMB}MB.`);
+        return;
+      }
+      setSelectedFile(file);
+      setUploadStatus(`✅ File terpilih: ${file.name}`);
+    } else {
+      setSelectedFile(null);
+      setUploadStatus('');
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setUploadStatus('⚠️ Silakan pilih file terlebih dahulu.');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadStatus(`⏳ Mengunggah dan memproses ${selectedFile.name}...`);
+
+    // TODO: Backend - Ganti dengan panggilan API POST ke backend Python/Flask/Django Anda
+    const formData = new FormData();
+    formData.append('datasetFile', selectedFile);
+
+    try {
+        // --- SIMULASI UPLOAD DATASET KE SERVER ---
+        await new Promise(resolve => setTimeout(resolve, 3000)); 
+
+        // Setelah upload/proses parsing berhasil di backend:
+        setUploadStatus(`🎉 Berhasil! Dataset "${selectedFile.name}" berhasil diunggah dan siap dianalisis. Proses Automatic Data Parsing selesai.`);
+        // Reset file input setelah sukses (opsional)
+        setSelectedFile(null); 
+    } catch (error) {
+        console.error('Upload Error:', error);
+        setUploadStatus('❌ Gagal mengunggah file. Silakan coba lagi.');
+    } finally {
+        setIsUploading(false);
+    }
   };
 
   return (
     <div className="dataset">
       <div className="dataset-header">
-        <h1>Steam Dataset</h1>
-        <p>View and manage Steam games dataset</p>
-      </div>
-
-      <div className="dataset-content">
-        <div className="dataset-main-card">
-          <div className="dataset-hero">
-            <div className="dataset-icon-large">🎮</div>
-            <div className="dataset-info">
-              <h2>{steamDataset.name}</h2>
-              <p>{steamDataset.description}</p>
-            </div>
-          </div>
-
-          <div className="dataset-stats-grid">
-            <div className="stat-item">
-              <span className="stat-icon">📊</span>
-              <div>
-                <p className="stat-label">Total Games</p>
-                <h3 className="stat-value">{steamDataset.totalGames.toLocaleString()}</h3>
-              </div>
-            </div>
-            <div className="stat-item">
-              <span className="stat-icon">📅</span>
-              <div>
-                <p className="stat-label">Last Updated</p>
-                <h3 className="stat-value">{steamDataset.lastUpdated}</h3>
-              </div>
-            </div>
-            <div className="stat-item">
-              <span className="stat-icon">💾</span>
-              <div>
-                <p className="stat-label">File Size</p>
-                <h3 className="stat-value">{steamDataset.size}</h3>
-              </div>
-            </div>
-            <div className="stat-item">
-              <span className="stat-icon">📄</span>
-              <div>
-                <p className="stat-label">Format</p>
-                <h3 className="stat-value">{steamDataset.format}</h3>
-              </div>
-            </div>
-          </div>
-
-          <div className="dataset-columns">
-            <h3>Dataset Columns</h3>
-            <div className="columns-grid">
-              {steamDataset.columns.map((column, index) => (
-                <div key={index} className="column-tag">
-                  {column}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="dataset-actions">
-            <button className="btn-primary">
-              <span>👁️</span>
-              View Games
-            </button>
-            <button className="btn-secondary">
-              <span>📥</span>
-              Download CSV
-            </button>
-            <button className="btn-secondary">
-              <span>🔄</span>
-              Refresh Data
-            </button>
-          </div>
+        <div>
+          <h1>Manajemen Dataset</h1>
+          <p>Fitur untuk mengunggah file data mentah (CSV/Excel) untuk memulai analisis korelasi data game Steam.</p>
         </div>
       </div>
+
+      <div className="card upload-card">
+        <h2>Upload Dataset Baru (CSV/Excel)</h2>
+        <p className="description">
+            Unggah file Anda di sini. Data akan otomatis masuk ke proses Automatic Data Parsing di server. Mendukung format .csv dan .xlsx.
+        </p>
+        
+        <div className="upload-container">
+          <input
+            type="file"
+            id="datasetFile"
+            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+            onChange={handleFileChange}
+            disabled={isUploading}
+            style={{ display: 'none' }} // Sembunyikan input default
+          />
+          
+          <div className="file-input-area">
+              <label htmlFor="datasetFile" className={`custom-file-button ${isUploading ? 'disabled' : ''}`}>
+                  {selectedFile ? 'Ganti File' : 'Pilih File CSV/Excel'}
+              </label>
+              <span className="file-name-display">
+                  {selectedFile ? selectedFile.name : 'Belum ada file yang dipilih'}
+              </span>
+          </div>
+
+          <button
+            className="btn-primary upload-btn"
+            onClick={handleUpload}
+            disabled={!selectedFile || isUploading}
+          >
+            {isUploading ? 'Memproses...' : '⬆️ Unggah dan Proses Data'}
+          </button>
+        </div>
+        
+        {/* Status Upload */}
+        {uploadStatus && (
+            <div className={`upload-status ${uploadStatus.startsWith('❌') ? 'error' : uploadStatus.startsWith('🎉') ? 'success' : ''}`}>
+                <p>{uploadStatus}</p>
+            </div>
+        )}
+      </div>
+      
+      {/* TODO: Tambahkan tabel untuk melihat riwayat atau status dataset yang sudah diunggah */}
+
     </div>
   );
 }

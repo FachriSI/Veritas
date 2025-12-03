@@ -1,57 +1,71 @@
+/* src/index.css */
+/* Pastikan file ini diimpor di src/main.jsx: 
+   import './index.css'; 
+*/
+
 :root {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  line-height: 1.6;
-  font-weight: 400;
+  /* Warna Primer */
+  --color-primary: #10b981; /* Hijau Emerald */
+  --color-secondary: #3b82f6; /* Biru */
+  
+  /* Warna Dasar (Light Mode) */
+  --background-color: #f3f4f6;
+  --text-color-primary: #1f2937;
+  --text-color-secondary: #6b7280;
+  --card-bg: #ffffff;
+  
+  /* Input dan Batas */
+  --input-bg: #f9fafb;
+  --input-border-color: #d1d5db;
+  --border-color: #e5e7eb;
+  --header-bg: #f9fafb; /* Latar belakang header tabel */
+  
+  /* Tombol Sekunder */
+  --secondary-button-bg: #ffffff;
+  --secondary-button-text: #374151;
+  --secondary-button-hover-bg: #f3f4f6;
 
-  color: #1f2937;
-  background-color: #ffffff;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Shadow */
+  --shadow-small: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
 
-* {
+/* Base Styles (Diterapkan ke seluruh dokumen) */
+body {
   margin: 0;
-  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background-color);
+  color: var(--text-color-primary);
+  line-height: 1.5;
+}
+
+/* Reset Box Model */
+* {
   box-sizing: border-box;
 }
 
-a {
-  color: #667eea;
-  text-decoration: none;
-}
-a:hover {
-  text-decoration: underline;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
+/* Global Button Styles */
 button {
-  font-family: inherit;
   cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  transition: background-color 0.2s, opacity 0.2s;
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+  padding: 10px 15px;
 }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
+.btn-primary:hover:not(:disabled) {
+  background-color: #0d9472; /* Warna hijau yang sedikit lebih gelap */
 }
 
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
+.btn-primary:disabled {
+  background-color: #a7f3d0;
+  cursor: not-allowed;
 }

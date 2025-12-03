@@ -1,128 +1,194 @@
+// src/components/Dashboard.jsx
+import { useState, useEffect } from 'react';
 import './Dashboard.css';
+// Import komponen Chart.js yang dibutuhkan
+import { Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 
-// Komponen Dashboard ini sekarang menampilkan ANALISIS DATA
-function Dashboard() {
-  // Data dummy untuk Statistik Deskriptif (Akan diganti dengan API)
-  const descriptiveStats = [
-    { id: 1, title: 'Total Game Di-Analisis', value: '2,543', icon: '🎮', color: '#667eea' },
-    { id: 2, title: 'Rata-Rata Harga', value: '$25.99', icon: '💰', color: '#f59e0b' },
-    { id: 3, title: 'Rata-Rata Ulasan (Positif)', value: '88%', icon: '👍', color: '#10b981' },
-    { id: 4, title: 'Koefisien Korelasi Tertinggi', value: '+0.75 (Price-Review)', icon: '📈', color: '#ef4444' },
-  ];
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
-  // Data dummy untuk Hasil Korelasi (Akan diganti dengan komponen grafik interaktif)
-  const correlationResults = [
-    // Data ini merepresentasikan nilai koefisien Pearson antara variabel independen terhadap Review_type (variabel target)
-    { target: 'Review_type (Skor Ulasan)', price: 0.75, review_no: 0.45, genre: -0.12 },
-  ];
 
-  const handleExportPDF = () => {
-    // TODO: IV. Pelaporan - Implementasi fungsi Export PDF
-    // Menggunakan pustaka seperti html2canvas dan jsPDF di frontend
-    // atau meminta backend menghasilkan PDF.
-    // NOTE: Ganti alert() dengan modal custom.
-    console.log('Fungsi Export PDF dipanggil! (Perlu integrasi backend/library frontend)');
-    alert('Export Laporan PDF dimulai. Fungsionalitas memerlukan integrasi library sisi klien/server.');
+// DUMMY DATA UNTUK SIMULASI DASHBOARD
+const dummyStats = {
+  totalGames: 12500,
+  priceRange: '$0.00 - $69.99',
+  averageReview: 8.5,
+  correlationResults: [ // Hasil Korelasi Koefisien Pearson (Fitur #5)
+    { factor: 'Price', target: 'Review Score', pearson: 0.15, pValue: 0.001 },
+    { factor: 'Review Number', target: 'Review Score', pearson: 0.78, pValue: 0.000 },
+    { factor: 'Genre (Action)', target: 'Review Score', pearson: 0.45, pValue: 0.000 },
+    { factor: 'Genre (RPG)', target: 'Review Score', pearson: 0.62, pValue: 0.000 },
+  ],
+  // Data simulasi untuk Grafik Distribusi Ulasan per Genre (Fitur #5)
+  genreDistribution: {
+    labels: ['Action', 'RPG', 'Strategy', 'Indie', 'Simulation'],
+    positiveReviews: [1500, 2100, 750, 1200, 450],
+    mixedReviews: [300, 450, 200, 350, 100],
+    negativeReviews: [100, 150, 50, 80, 20],
+  }
+};
+
+const Dashboard = () => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // TODO: Ganti dengan fetch data dari backend Flask/Django Anda
+  useEffect(() => {
+    setLoading(true);
+    setTimeout(() => {
+      setStats(dummyStats);
+      setLoading(false);
+    }, 1500);
+  }, []);
+  
+  const handleDownloadReport = () => {
+      // Fitur #10: Mengunduh grafik atau visualisasi sebagai PNG/PDF
+      console.log('Downloading visual reports (Fitur #10)...');
+      alert('Simulasi: Laporan visual akan diunduh sebagai PNG/PDF.');
   };
 
-  // Fungsi untuk menentukan badge korelasi
-  const getCorrelationBadgeClass = (value) => {
-    if (value > 0.5) return 'high';
-    if (value < -0.5) return 'negative-high';
-    if (value > 0 || value < 0) return 'moderate';
-    return 'neutral';
+  // Data dan Opsi untuk Grafik Batang (Distribusi Ulasan per Genre)
+  const chartData = {
+    labels: stats?.genreDistribution.labels,
+    datasets: [
+      {
+        label: 'Positive Reviews',
+        data: stats?.genreDistribution.positiveReviews,
+        backgroundColor: '#10b981', // Hijau Primary
+      },
+      {
+        label: 'Mixed Reviews',
+        data: stats?.genreDistribution.mixedReviews,
+        backgroundColor: '#fbbf24', // Kuning/Orange
+      },
+      {
+        label: 'Negative Reviews',
+        data: stats?.genreDistribution.negativeReviews,
+        backgroundColor: '#ef4444', // Merah
+      },
+    ],
   };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: false,
+      },
+    },
+    scales: {
+        x: {
+            stacked: true,
+        },
+        y: {
+            stacked: true,
+            beginAtZero: true,
+        },
+    }
+  };
+
+
+  if (loading) {
+    return <div className="dashboard loading-state"><p>Memuat hasil analisis data...</p></div>;
+  }
+  
+  if (!stats) {
+      return <div className="dashboard empty-state"><p>Data analisis belum tersedia. Silakan unggah dataset terlebih dahulu.</p></div>;
+  }
 
   return (
     <div className="dashboard">
       <div className="dashboard-header">
         <div>
-          <h1>Dashboard Analisis Korelasi</h1>
-          <p>Visualisasi hasil analisis korelasi Harga, Jumlah Ulasan, dan Genre terhadap Tipe Ulasan Game.</p>
+          <h1>Dashboard Statistik Analisis Korelasi</h1>
+          <p>Ringkasan hasil analisis korelasi harga, ulasan, dan genre terhadap tipe ulasan game Steam.</p>
         </div>
-        <button className="btn-primary" onClick={handleExportPDF}>
-          📥 Export Laporan (PDF)
+        <button className="btn-primary" onClick={handleDownloadReport}>
+            📥 Download Report (PNG/PDF)
         </button>
       </div>
 
-      {/* BAGIAN 1: STATISTIK DESKRIPTIF */}
-      <h2 className="section-title">Statistik Deskriptif</h2>
-      <div className="stats-grid">
-        {descriptiveStats.map((stat) => (
-          <div key={stat.id} className="stat-card" style={{ borderLeftColor: stat.color }}>
-            <div className="stat-icon" style={{ background: `${stat.color}20`, color: stat.color }}>
-              {stat.icon}
-            </div>
-            <div className="stat-content">
-              <p className="stat-title">{stat.title}</p>
-              <h3 className="stat-value">{stat.value}</h3>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* BAGIAN 2: HASIL KORELASI & GRAFIK UTAMA */}
-      <div className="content-grid">
-        {/* Konten 1: Heatmap Korelasi (Menggantikan Recent Orders) */}
-        <div className="card large-card">
-          <div className="card-header">
-            <h3>Hasil Koefisien Korelasi Pearson</h3>
-            <p className="subtitle-header">Harga, Jumlah Ulasan, dan Genre vs Review Game</p>
-          </div>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Variabel Target</th>
-                  <th>Korelasi Harga (Price)</th>
-                  <th>Korelasi Jumlah Ulasan (Review_no)</th>
-                  <th>Korelasi Genre</th>
-                </tr>
-              </thead>
-              <tbody>
-                {correlationResults.map((result, index) => (
-                  <tr key={index}>
-                    <td>{result.target}</td>
-                    <td><span className={`correlation-badge ${getCorrelationBadgeClass(result.price)}`}>{result.price}</span></td>
-                    <td><span className={`correlation-badge ${getCorrelationBadgeClass(result.review_no)}`}>{result.review_no}</span></td>
-                    <td><span className={`correlation-badge ${getCorrelationBadgeClass(result.genre)}`}>{result.genre}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {/* TODO: Tempatkan Visualisasi Heatmap di sini (Menggunakan pustaka Chart) */}
-          <div className="chart-placeholder">
-            <p>Visualisasi Heatmap Korelasi akan ditampilkan di sini </p>
-          </div>
+      {/* 1. Statistik Deskriptif */}
+      <h2>Ringkasan Dataset</h2>
+      <div className="stats-cards">
+        <div className="stat-card">
+          <h3>Total Game</h3>
+          <p className="stat-value">{stats.totalGames.toLocaleString()}</p>
         </div>
-
-        {/* Konten 2: Grafik Distribusi (Menggantikan Quick Actions) */}
-        <div className="card small-card">
-          <div className="card-header">
-            <h3>Grafik Utama</h3>
-            <p className="subtitle-header">Distribusi Ulasan per Genre</p>
-          </div>
-          {/* TODO: Tempatkan Grafik Distribusi di sini (Menggunakan pustaka Chart) */}
-          <div className="chart-placeholder">
-            <p>Visualisasi Grafik Batang Distribusi Genre akan ditampilkan di sini </p>
-          </div>
+        <div className="stat-card">
+          <h3>Rentang Harga</h3>
+          <p className="stat-value">{stats.priceRange}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Rata-rata Ulasan</h3>
+          <p className="stat-value">⭐ {stats.averageReview}</p>
         </div>
       </div>
       
-      {/* Konten 3: Grafik Hubungan Harga vs Jumlah Ulasan */}
-      <div className="card span-full-width">
-        <div className="card-header">
-          <h3>Grafik Utama</h3>
-          <p className="subtitle-header">Hubungan Harga (Price) vs Jumlah Ulasan (Review_no)</p>
+      {/* 2. Hasil Korelasi (Pearson) - Fitur #5 */}
+      <h2>Hasil Korelasi Koefisien Pearson</h2>
+      <div className="card correlation-results">
+        <p className="card-description">Nilai koefisien korelasi (r) menunjukkan hubungan linier antara faktor dan variabel target (Review Score/Review Type). Nilai mendekati 1.0 berarti korelasi positif kuat.</p>
+        <table className="correlation-table">
+            <thead>
+                <tr>
+                    <th>Faktor Korelasi</th>
+                    <th>Variabel Target</th>
+                    <th>Koefisien Pearson (r)</th>
+                    <th>P-value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {stats.correlationResults.map((result, index) => (
+                    <tr key={index}>
+                        <td>{result.factor}</td>
+                        <td>{result.target}</td>
+                        <td className={result.pearson > 0.5 ? 'high-corr' : result.pearson > 0.1 ? 'medium-corr' : 'low-corr'}>
+                            {result.pearson.toFixed(2)}
+                        </td>
+                        <td>{result.pValue}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+      </div>
+
+      {/* 3. Visualisasi Data (Chart.js Implementasi) */}
+      <h2>Visualisasi Utama</h2>
+      <div className="charts-container">
+        
+        {/* Heatmap Korelasi - Menggunakan Tabel sebagai Representasi Heatmap (Fitur #5) */}
+        <div className="chart-card">
+          <h3>Heatmap Korelasi Antar Variabel (Simulasi)</h3>
+          <div className="chart-placeholder heatmap-placeholder">
+              {/* Representasi Heatmap: Di frontend React, ini bisa diimplementasikan dengan pustaka khusus 
+              atau dengan styling tabel yang lebih canggih. Untuk saat ini, kita fokus pada grafik. */}
+              <p>Menggunakan tabel korelasi di atas sebagai representasi utama hasil korelasi.</p>
+              <p>Visualisasi Heatmap (Fitur #5) dapat diintegrasikan di sini menggunakan Plotly.js atau styling tabel lebih lanjut.</p>
+          </div>
         </div>
-        {/* TODO: Tempatkan Grafik Scatter Plot di sini (Menggunakan pustaka Chart) */}
-        <div className="chart-placeholder large-chart-placeholder">
-          <p>Visualisasi Scatter Plot Harga vs Jumlah Ulasan akan ditampilkan di sini </p>
+        
+        {/* Grafik Distribusi Ulasan per Genre (Fitur #5) */}
+        <div className="chart-card">
+          <h3>Distribusi Ulasan per Genre (Grafik Batang)</h3>
+          <div className="chart-wrapper">
+              <Bar data={chartData} options={chartOptions} />
+          </div>
         </div>
       </div>
     </div>
   );
-}
+};
 
 export default Dashboard;

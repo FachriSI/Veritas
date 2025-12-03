@@ -1,189 +1,137 @@
+/* src/pages/Dataset.css */
 .dataset {
-  padding: 2rem;
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
 .dataset-header {
-  margin-bottom: 2rem;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .dataset-header h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+    margin: 0 0 5px 0;
+    color: var(--text-color-primary);
 }
 
-.dataset-header p {
-  color: #6b7280;
-  margin: 0;
+.upload-card {
+    padding: 30px;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: var(--shadow-small);
 }
 
-.dataset-content {
-  width: 100%;
+.upload-card h2 {
+    margin-top: 0;
+    color: var(--color-primary);
+    font-size: 1.5rem;
 }
 
-.dataset-main-card {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+.upload-card .description {
+    color: var(--text-color-secondary);
+    margin-bottom: 20px;
 }
 
-.dataset-hero {
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 2px solid #e5e7eb;
+.upload-container {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 20px;
 }
 
-.dataset-icon-large {
-  font-size: 5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2rem;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.file-input-area {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+    border: 1px solid var(--input-border-color);
+    border-radius: 6px;
+    background-color: var(--input-bg);
+    padding-right: 10px;
 }
 
-.dataset-info h2 {
-  font-size: 1.75rem;
-  color: #1f2937;
-  margin: 0 0 0.75rem 0;
+.custom-file-button {
+    background-color: var(--color-primary);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 6px 0 0 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-weight: 500;
 }
 
-.dataset-info p {
-  color: #6b7280;
-  font-size: 1rem;
-  margin: 0;
-  line-height: 1.6;
+.custom-file-button:hover {
+    background-color: #0d9472; /* Darker primary color */
 }
 
-.dataset-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+.custom-file-button.disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
 }
 
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-  border-radius: 12px;
-  border-left: 4px solid #667eea;
+.file-name-display {
+    padding: 0 10px;
+    color: var(--text-color-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.95rem;
 }
 
-.stat-icon {
-  font-size: 2rem;
+.upload-btn {
+    padding: 10px 20px;
+    min-width: 200px;
+    font-weight: 600;
 }
 
-.stat-label {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0 0 0.25rem 0;
+/* Status Styling */
+.upload-status {
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: 500;
 }
 
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0;
+.upload-status p {
+    margin: 0;
 }
 
-.dataset-columns {
-  margin-bottom: 2rem;
+.upload-status.error {
+    background-color: #fee2e2; /* Red light background */
+    color: #ef4444; /* Red text */
+    border: 1px solid #fca5a5;
 }
 
-.dataset-columns h3 {
-  font-size: 1.25rem;
-  color: #1f2937;
-  margin: 0 0 1rem 0;
+.upload-status.success {
+    background-color: #d1fae5; /* Green light background */
+    color: #059669; /* Green text */
+    border: 1px solid #6ee7b7;
 }
 
-.columns-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
+@media (max-width: 600px) {
+    .upload-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
 
-.column-tag {
-  padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
+    .file-input-area {
+        margin-bottom: 10px;
+    }
 
-.dataset-actions {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
+    .custom-file-button {
+        border-radius: 6px;
+    }
 
-.btn-primary {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.btn-secondary {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: white;
-  color: #667eea;
-  border: 2px solid #667eea;
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-secondary:hover {
-  background: #667eea;
-  color: white;
-  transform: translateY(-2px);
-}
-
-@media (max-width: 768px) {
-  .dataset-hero {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .dataset-stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .dataset-actions {
-    flex-direction: column;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    width: 100%;
-    justify-content: center;
-  }
+    .file-input-area {
+        padding-right: 0;
+        border-radius: 6px;
+    }
+    
+    .file-name-display {
+        text-align: center;
+        padding: 10px 0;
+        border-top: 1px solid var(--input-border-color);
+        width: 100%;
+    }
 }
