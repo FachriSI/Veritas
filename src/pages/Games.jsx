@@ -1,40 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './Games.css';
+import { useNavigate } from 'react-router-dom';
 
 function Games() {
-  // State untuk data games yang akan diisi dari CSV
+  const navigate = useNavigate();
+  // State untuk data games yang akan diisi dari backend
   const [games, setGames] = useState([]);
   const [filteredGames, setFilteredGames] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
+  
+  // State untuk Multi-select Filters
+  const [selectedGenres, setSelectedGenres] = useState([]);
+  const [selectedReviewTypes, setSelectedReviewTypes] = useState([]);
+  
   const [loading, setLoading] = useState(false);
   const gamesPerPage = 10;
 
-  // TODO: Backend - Ganti dengan fetch data dari CSV
-  // Fungsi ini akan memanggil API backend untuk load CSV
-  useEffect(() => {
-    loadGamesFromCSV();
-  }, []);
+  // Review Types yang Didefinisikan
+  const reviewTypes = ['Positive', 'Mixed', 'Negative'];
 
-  const loadGamesFromCSV = async () => {
+  // TODO: Backend - Ganti dengan fetch data dari backend
+  const loadGamesFromCSV = useCallback(async () => {
     setLoading(true);
     try {
-      // TODO: Backend Developer - Implement CSV loading
-      // Example endpoint: await fetch('/api/games/load-csv')
-      // Expected CSV columns: id, title, genre, rating, platform, release_date, developer, publisher, price, tags
-      
-      // Dummy data untuk template - HAPUS ini dan ganti dengan data dari backend
+      // Dummy data untuk template
       const dummyData = [
         { 
           id: 1, 
           title: 'The Witcher 3: Wild Hunt', 
           genre: 'RPG', 
+          review_type: 'Positive',
           rating: 9.8, 
           platform: 'PC, PS4, Xbox', 
           release_date: '2015-05-19',
-          developer: 'CD Projekt Red',
-          publisher: 'CD Projekt',
           price: 39.99,
           tags: 'RPG, Open World, Fantasy'
         },
@@ -42,40 +40,68 @@ function Games() {
           id: 2, 
           title: 'Cyberpunk 2077', 
           genre: 'Action RPG', 
+          review_type: 'Mixed',
           rating: 8.5, 
           platform: 'PC, PS5, Xbox', 
           release_date: '2020-12-10',
-          developer: 'CD Projekt Red',
-          publisher: 'CD Projekt',
           price: 59.99,
           tags: 'RPG, Sci-Fi, Open World'
         },
-        // Add more dummy data or remove and fetch from backend
+        { id: 3, title: 'Red Dead Redemption 2', genre: 'Adventure', review_type: 'Positive', rating: 9.7, platform: 'PC, PS4, Xbox', release_date: '2019-12-05', price: 59.99, tags: 'Open World, Western' },
+        { id: 4, title: 'Baldur\'s Gate 3', genre: 'RPG', review_type: 'Positive', rating: 9.6, platform: 'PC, PS5', release_date: '2023-08-03', price: 69.99, tags: 'RPG, Fantasy, Turn-Based' },
+        { id: 5, title: 'Halo Infinite', genre: 'Shooter', review_type: 'Mixed', rating: 8.0, platform: 'PC, Xbox', release_date: '2021-12-08', price: 59.99, tags: 'FPS, Sci-Fi' },
+        { id: 6, title: 'Stardew Valley', genre: 'Simulation', review_type: 'Positive', rating: 9.9, platform: 'PC, Switch, Mobile', release_date: '2016-02-26', price: 14.99, tags: 'Farming Sim, Pixel Graphics' },
+        { id: 7, title: 'Elden Ring', genre: 'Action RPG', review_type: 'Positive', rating: 9.5, platform: 'PC, PS5, Xbox', release_date: '2022-02-25', price: 59.99, tags: 'Souls-like, Open World, Fantasy' },
+        { id: 8, title: 'Among Us', genre: 'Party', review_type: 'Negative', rating: 7.5, platform: 'PC, Mobile, Switch', release_date: '2018-11-16', price: 4.99, tags: 'Multiplayer, Social Deduction' },
+        { id: 9, title: 'FIFA 24', genre: 'Sports', review_type: 'Negative', rating: 7.0, platform: 'PC, PS5, Xbox', release_date: '2023-09-29', price: 69.99, tags: 'Soccer, Simulation' },
+        { id: 10, title: 'Resident Evil 4', genre: 'Survival Horror', review_type: 'Positive', rating: 9.0, platform: 'PC, PS5, Xbox', release_date: '2023-03-24', price: 59.99, tags: 'Horror, Action, Remake' },
       ];
 
       setGames(dummyData);
       setFilteredGames(dummyData);
     } catch (error) {
       console.error('Error loading games from CSV:', error);
-      // TODO: Backend - Handle error (show notification to user)
+      // Ganti alert dengan console.log/custom modal
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    loadGamesFromCSV();
+  }, [loadGamesFromCSV]);
+
+  // Semua Genre unik
+  const allGenres = [...new Set(games.map(game => game.genre))].sort();
+
+  // Logic Toggle Multi-Select Filters
+  const toggleFilter = (filterName, value) => {
+    if (filterName === 'genre') {
+      setSelectedGenres(prev => 
+        prev.includes(value) ? prev.filter(g => g !== value) : [...prev, value]
+      );
+    } else if (filterName === 'reviewType') {
+      setSelectedReviewTypes(prev => 
+        prev.includes(value) ? prev.filter(r => r !== value) : [...prev, value]
+      );
+    }
   };
 
-  // Filter berdasarkan genre
-  const genres = ['all', ...new Set(games.map(game => game.genre))];
-
-  // Handle search
+  // Logic Filtering Utama
   useEffect(() => {
     let filtered = games;
 
-    // Filter by genre
-    if (selectedGenre !== 'all') {
-      filtered = filtered.filter(game => game.genre === selectedGenre);
+    // 1. Filter by Genres (Multi-Select)
+    if (selectedGenres.length > 0) {
+      filtered = filtered.filter(game => selectedGenres.includes(game.genre));
     }
 
-    // Filter by search term
+    // 2. Filter by Review Types (Multi-Select)
+    if (selectedReviewTypes.length > 0) {
+      filtered = filtered.filter(game => selectedReviewTypes.includes(game.review_type));
+    }
+    
+    // 3. Filter by Search Term
     if (searchTerm) {
       filtered = filtered.filter(game =>
         game.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -85,34 +111,40 @@ function Games() {
     }
 
     setFilteredGames(filtered);
-    setCurrentPage(1);
-  }, [searchTerm, selectedGenre, games]);
+    // Reset ke halaman 1 setiap kali filter berubah
+    setCurrentPage(1); 
+  }, [searchTerm, selectedGenres, selectedReviewTypes, games]);
 
   // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
   const indexOfLastGame = currentPage * gamesPerPage;
   const indexOfFirstGame = indexOfLastGame - gamesPerPage;
   const currentGames = filteredGames.slice(indexOfFirstGame, indexOfLastGame);
   const totalPages = Math.ceil(filteredGames.length / gamesPerPage);
 
-  // TODO: Backend - Implement these functions
+  // CRUD Handlers (Ganti alert() dengan console.log)
   const handleView = (gameId) => {
-    console.log('View game:', gameId);
-    // TODO: Navigate to game detail page or show modal
+    console.log(`[CRUD] View game ID: ${gameId}`);
+    // TODO: Implementasi navigasi ke detail game
   };
 
   const handleEdit = (gameId) => {
-    console.log('Edit game:', gameId);
-    // TODO: Open edit form or navigate to edit page
+    console.log(`[CRUD] Edit game ID: ${gameId}`);
+    // TODO: Implementasi form edit
   };
 
   const handleDelete = (gameId) => {
-    console.log('Delete game:', gameId);
-    // TODO: Show confirmation and call API to delete
+    console.log(`[CRUD] Delete game ID: ${gameId}`);
+    // TODO: Implementasi API DELETE dan refresh data
   };
 
   const handleExportCSV = () => {
     // TODO: Backend - Implement CSV export functionality
     console.log('Exporting filtered data to CSV...');
+  };
+  
+  const handleAddNewGame = () => {
+    navigate('/games/add');
   };
 
   return (
@@ -130,23 +162,56 @@ function Games() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+          <button 
+            className="btn-primary" 
+            onClick={handleAddNewGame} 
+            style={{ background: '#10b981', marginRight: '1rem' }}
+          >
+            ➕ Tambah Data Game
+          </button>
           <button className="btn-primary" onClick={handleExportCSV}>
             📥 Export CSV
           </button>
         </div>
       </div>
 
-      <div className="games-filters">
-        {genres.map((genre) => (
-          <button
-            key={genre}
-            className={`filter-btn ${selectedGenre === genre ? 'active' : ''}`}
-            onClick={() => setSelectedGenre(genre)}
-          >
-            {genre === 'all' ? 'All Games' : genre}
-          </button>
-        ))}
-      </div>
+      {/* Bagian Filter */}
+      <div className="card filters-container">
+        <h4>Filter Data:</h4>
+        
+        {/* Filter Genre */}
+        <div className="filter-group">
+            <p className="filter-label">Genre:</p>
+            <div className="filter-buttons">
+                {allGenres.map((genre) => (
+                    <button
+                        key={genre}
+                        className={`filter-btn ${selectedGenres.includes(genre) ? 'active' : ''}`}
+                        onClick={() => toggleFilter('genre', genre)}
+                    >
+                        {genre}
+                    </button>
+                ))}
+            </div>
+        </div>
+        
+        {/* Filter Review Type BARU */}
+        <div className="filter-group">
+            <p className="filter-label">Review Type:</p>
+            <div className="filter-buttons">
+                {reviewTypes.map((type) => (
+                    <button
+                        key={type}
+                        className={`filter-btn ${selectedReviewTypes.includes(type) ? 'active' : ''}`}
+                        onClick={() => toggleFilter('reviewType', type)}
+                    >
+                        {type}
+                    </button>
+                ))}
+            </div>
+        </div>
+
+      </div> {/* End filters-container */}
 
       <div className="games-content">
         <div className="card">
@@ -166,6 +231,7 @@ function Games() {
                     <tr>
                       <th>Game Title</th>
                       <th>Genre</th>
+                      <th>Review Type</th> {/* Tambahkan kolom Review Type */}
                       <th>Rating</th>
                       <th>Platform</th>
                       <th>Release Date</th>
@@ -178,6 +244,9 @@ function Games() {
                       <tr key={game.id}>
                         <td className="game-title">{game.title}</td>
                         <td>{game.genre}</td>
+                        <td>
+                            <span className={`status-badge ${game.review_type.toLowerCase()}`}>{game.review_type}</span>
+                        </td>
                         <td>
                           <span className="rating">⭐ {game.rating}</span>
                         </td>
@@ -240,36 +309,6 @@ function Games() {
             </>
           )}
         </div>
-      </div>
-
-      {/* Backend Integration Guide */}
-      <div style={{ display: 'none' }}>
-        {/* 
-          BACKEND INTEGRATION GUIDE:
-          
-          1. CSV Loading Endpoint:
-             - Create endpoint: GET /api/games/load-csv
-             - Response format: Array of game objects
-             - Expected fields: id, title, genre, rating, platform, release_date, developer, publisher, price, tags
-          
-          2. CSV Export Endpoint:
-             - Create endpoint: GET /api/games/export-csv?genre={genre}&search={searchTerm}
-             - Return filtered CSV file
-          
-          3. CRUD Operations:
-             - View: GET /api/games/{id}
-             - Edit: PUT /api/games/{id}
-             - Delete: DELETE /api/games/{id}
-          
-          4. CSV File Location:
-             - Store CSV in: /data/steam_games.csv
-             - Or use configurable path from environment variable
-          
-          5. Error Handling:
-             - Return proper error messages
-             - Handle missing CSV file
-             - Validate CSV format
-        */}
       </div>
     </div>
   );
