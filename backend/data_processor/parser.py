@@ -15,7 +15,7 @@ COLUMN_MAPPING = {
     'Description': 'description'
 }
 
-# Tipe data yang diharapkan untuk konversi otomatis
+# Tipe data yang diharapkan untuk konversi otomatis (Hanya digunakan sebagai referensi)
 EXPECTED_DTYPES = {
     'price': float,
     'review_no': np.int64,
@@ -29,10 +29,7 @@ def parse_and_validate_data(file_path, file_extension):
     # 1. Baca File (Mendukung CSV dan XLSX)
     try:
         if file_extension == '.csv':
-            # Perbaikan Final untuk mengatasi error Tokenizing:
-            # 1. encoding='latin-1' (Mengatasi byte 0xa0)
-            # 2. engine='python' (Mengatasi parsing quote yang tidak konsisten)
-            # 3. on_bad_lines='skip' (Mengatasi crash pada baris 311 yang malformed)
+            # Menggunakan konfigurasi robust untuk CSV (encoding='latin-1', engine='python', on_bad_lines='skip')
             df = pd.read_csv(file_path, 
                              encoding='latin-1', 
                              sep=',', 
@@ -58,15 +55,35 @@ def parse_and_validate_data(file_path, file_extension):
 
     # 4. Validasi dan Konversi Tipe Data
     try:
-        # Konversi tipe data numerik (price, review_no)
-        for col, dtype in EXPECTED_DTYPES.items():
-            df[col] = pd.to_numeric(df[col], errors='coerce').astype(dtype, errors='ignore')
+        # --- PERBAIKAN 1: Membersihkan kolom Review_no (Menghapus koma/teks) ---
+        # Menghapus semua karakter non-digit dari string (seperti " 574,097 User Reviews ")
+        df['review_no'] = df['review_no'].astype(str).str.replace(r'[^0-9]', '', regex=True)
+        df['review_no'] = pd.to_numeric(df['review_no'], errors='coerce')
+        # Mengisi NaN (jika review_no benar-benar kosong) dengan 0 dan konversi ke integer
+        df['review_no'] = df['review_no'].fillna(0.0).astype(np.int64)
+
+        # --- PERBAIKAN 2: Handle Price (Menghapus '$', koma, dan mengubah "Free to Play" menjadi 0) ---
+        # Hapus simbol '$' dan koma (,) agar dapat dikonversi ke numerik
+        df['price'] = df['price'].astype(str).str.replace(r'[\$,]', '', regex=True).str.strip()
+        
+        # Mengubah nilai non-numerik (misalnya 'Free To Play' atau 'Prepurchase') menjadi NaN
+        df['price'] = pd.to_numeric(df['price'], errors='coerce') 
+        
+        # Mengisi nilai NaN dengan 0.00 (Handle Free To Play/Prepurchase)
+        df['price'] = df['price'].fillna(0.00)
+        df['price'] = df['price'].astype(float)
+
+        # --- PERBAIKAN 3: Batasi panjang Description ---
+        # Untuk mencegah error SQL jika Description terlalu panjang.
+        df['description'] = df['description'].astype(str).str.slice(0, 5000)
 
         # Konversi Release_date menjadi format DATE (YYYY-MM-DD)
         df['release_date'] = pd.to_datetime(df['release_date'], errors='coerce').dt.strftime('%Y-%m-%d')
         
-        # Hapus baris yang mungkin memiliki nilai null pada kolom kunci (name dan release_date)
-        df.dropna(subset=['release_date', 'name'], inplace=True) 
+        # Hapus baris yang mungkin memiliki nilai null pada kolom kunci utama
+        # Kolom yang TIDAK BOLEH NULL: name, price, review_no, review_type, release_date
+        required_for_analysis = ['name', 'price', 'review_no', 'review_type', 'release_date']
+        df.dropna(subset=required_for_analysis, inplace=True) 
         
     except Exception as e:
         return None, f"Gagal melakukan konversi tipe data otomatis: {e}"

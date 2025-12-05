@@ -10,7 +10,7 @@ from data_processor.parser import parse_and_validate_data
 from data_processor.analyzer import calculate_dashboard_stats 
 import pandas as pd
 import math 
-import csv # Diperlukan untuk Fitur Export CSV
+import csv 
 
 # --- Konfigurasi UPLOAD ---
 UPLOAD_FOLDER = 'uploads' 
@@ -27,7 +27,6 @@ CORS(app)
 def get_db_connection():
     """
     Mencoba membuat koneksi ke database MySQL.
-    Perintah SET SESSION telah dihapus karena konflik Read-Only.
     """
     try:
         conn = mysql.connector.connect(
@@ -123,12 +122,22 @@ def fetch_all_game_data(limit=None, offset=None, search=None, genre=None, review
         base_query += " AND name LIKE %s"
         params.append(f"%{search}%")
 
-    # Fitur Filter Genre (Fitur #8)
+    # Fitur Filter Genre (Fitur #8) - PERBAIKAN LOGIKA WHOLE WORD MATCHING
     if genre:
         genres = [g.strip() for g in genre.split(',') if g.strip()]
         for g in genres:
-            base_query += f" AND tags LIKE %s" 
-            params.append(f"%{g}%")
+            # Memastikan tag yang dicari sesuai dengan batas kata (delimitasi koma/spasi)
+            # Kondisi: Tags = 'tes' OR Tags LIKE 'tes,%' OR Tags LIKE '%, tes' OR Tags LIKE '%, tes,%'
+            base_query += " AND (tags = %s OR tags LIKE %s OR tags LIKE %s OR tags LIKE %s)"
+            
+            # 1. Match Exact (e.g., 'tes')
+            params.append(g)             
+            # 2. Match di awal string (e.g., 'tes,%')
+            params.append(f"{g},%")     
+            # 3. Match di akhir string (e.g., '%, tes') 
+            params.append(f"%, {g}")  
+            # 4. Match di tengah string (e.g., '%, tes,%')
+            params.append(f"%, {g},%")  
             
     # Fitur Filter Review Type (Fitur #8)
     if review_type:
@@ -167,6 +176,61 @@ def fetch_all_game_data(limit=None, offset=None, search=None, genre=None, review
     finally:
         conn.close()
 
+def clear_games_table():
+    """
+    Menghapus semua data dari tabel 'games' (TRUNCATE).
+    """
+    conn = get_db_connection()
+    if not conn:
+        return "Gagal terhubung ke database.", False
+
+    query = "TRUNCATE TABLE games"
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query)
+        conn.commit()
+        return "Tabel games berhasil dikosongkan.", True
+    except mysql.connector.Error as err:
+        conn.rollback()
+        return f"Gagal mengosongkan tabel games: {err}", False
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        conn.close()
+
+
+def fetch_all_unique_tags():
+    """Mengambil semua tags unik dari database untuk filter."""
+    conn = get_db_connection()
+    if not conn:
+        return None, "Gagal terhubung ke database."
+
+    # Mengambil semua tags (string yang dipisahkan koma)
+    query = "SELECT tags FROM games WHERE tags IS NOT NULL AND tags != ''"
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query)
+        raw_tags = cursor.fetchall()
+        
+        all_tags = set()
+        # Memproses string tags yang dipisahkan koma
+        for row in raw_tags:
+            # row[0] adalah string tags (e.g., "Action, RPG, Indie")
+            tags_list = row[0].split(',')
+            for tag in tags_list:
+                cleaned_tag = tag.strip()
+                if cleaned_tag:
+                    all_tags.add(cleaned_tag)
+        
+        # Mengurutkan dan mengonversi ke list
+        return sorted(list(all_tags)), None
+
+    except Exception as e:
+        return None, f"Gagal mengambil tags unik: {e}"
+    finally:
+        conn.close()
 
 # --- Rute Sederhana ---
 @app.route('/', methods=['GET'])
@@ -231,6 +295,26 @@ def upload_dataset():
     else:
         return jsonify({"message": "Format file tidak valid. Gunakan CSV atau XLSX."}), 400
 
+# --- Rute Clear Database ---
+@app.route('/api/clear-database', methods=['POST'])
+def clear_database():
+    """Endpoint untuk menghapus semua data di tabel games."""
+    message, success = clear_games_table()
+    if success:
+        return jsonify({"message": message}), 200
+    else:
+        return jsonify({"message": message}), 500
+
+# --- Rute Tags untuk Filter ---
+@app.route('/api/tags-for-filter', methods=['GET'])
+def get_tags_for_filter():
+    """Endpoint untuk mengambil semua tags unik untuk keperluan filter."""
+    tags, error = fetch_all_unique_tags()
+    
+    if error:
+        return jsonify({"message": error}), 500
+        
+    return jsonify({"tags": tags}), 200
 
 # --- Rute Dashboard Statistik (Fitur #5) ---
 @app.route('/api/dashboard-stats', methods=['GET'])
@@ -250,18 +334,20 @@ def get_dashboard_stats():
     try:
         stats = calculate_dashboard_stats(df)
         
+        # PERBAIKAN KRITIS: Mengakses key yang benar dari hasil calculate_dashboard_stats 
+        # (Memperbaiki KeyError: 'genre_distribution')
         response = {
             "stats": stats['descriptive_stats'],
             "correlation": stats['correlation_results'],
-            "genre_data": {
-                "distribution": stats['genre_distribution'], 
-                "avg_score": stats['genre_avg_score']       
-            }
+            "genre_data": stats['genre_data'], # Menggunakan seluruh dictionary genre_data
+            "classification": stats['classification'], 
+            "ml_error": stats['ml_error'] 
         }
         
         return jsonify(response), 200
         
     except Exception as e:
+        # Menangani KeyErrors atau error lain yang terjadi saat pemrosesan akhir
         print(f"Error during data analysis: {e}")
         return jsonify({"message": f"Gagal melakukan analisis data: {e}"}), 500
 

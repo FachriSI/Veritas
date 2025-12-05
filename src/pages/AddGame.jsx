@@ -3,6 +3,8 @@ import { useState } from 'react';
 import './AddGame.css';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE_URL = 'http://localhost:5000'; 
+
 function AddGame() {
   const navigate = useNavigate();
   // State untuk menyimpan data input game baru
@@ -26,27 +28,56 @@ function AddGame() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     console.log('[CRUD] Submitting new game data:', newGame);
     
-    // TODO: Backend - Lakukan validasi data yang ketat sesuai Fitur #3
-    // TODO: Backend - Ganti ini dengan Panggilan API POST/Fetch ke backend (Flask/Django)
+    // --- Panggilan API POST ke Backend (Fitur #3) ---
     
-    // Simulasi sukses
-    alert(`Data Game "${newGame.Name}" berhasil ditambahkan (simulasi). Data akan masuk ke proses analisis.`);
-    
-    // Reset form atau navigasi kembali ke halaman Games
-    setNewGame({
-        Name: '',
-        Price: '',
-        Release_date: '',
-        Review_no: '',
-        Review_type: 'Positive',
-        Tags: '',
-        Description: ''
-    });
-    navigate('/games'); // Kembali ke daftar game setelah submit (opsional)
+    // Lakukan validasi data yang ketat (seperti harga harus angka)
+    const dataToSend = {
+        name: newGame.Name,
+        price: parseFloat(newGame.Price) || 0, // Pastikan Price adalah float
+        release_date: newGame.Release_date,
+        review_no: parseInt(newGame.Review_no) || 0, // Pastikan Review_no adalah integer
+        review_type: newGame.Review_type,
+        tags: newGame.Tags,
+        description: newGame.Description
+    };
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/games`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dataToSend)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(`🎉 Data Game "${newGame.Name}" berhasil ditambahkan. ID: ${result.id}.`);
+            
+            // Reset form
+            setNewGame({
+                Name: '',
+                Price: '',
+                Release_date: '',
+                Review_no: '',
+                Review_type: 'Positive',
+                Tags: '',
+                Description: ''
+            });
+            navigate('/games'); // Kembali ke daftar game setelah submit
+        } else {
+            alert(`❌ Gagal menambahkan data. Error: ${result.message || 'Terjadi kesalahan server.'}`);
+        }
+
+    } catch (error) {
+        console.error('Add Game Error:', error);
+        alert('❌ Gagal terhubung ke server. Pastikan backend Flask berjalan.');
+    }
   };
 
   return (
