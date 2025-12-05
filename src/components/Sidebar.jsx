@@ -9,16 +9,13 @@ function Sidebar() {
 
   // URUTAN MENU BARU SESUAI PERMINTAAN:
   // 1. Home
-  // 2. Dataset (CRUD)
-  // 3. Games (Daftar & Filter)
+  // 2. Import data
+  // 3. Games (Daftar & Filter, edit, tambahkan, dan hapus data game)
   // 4. Dashboard (Analisis)
   const menuItems = [
     { id: 'home', path: '/', icon: '🏠', label: 'Home' },
-    // Konten Dataset (Upload, Input, Edit, Delete)
-    { id: 'dataset', path: '/dataset', icon: '📁', label: 'Dataset (CRUD)' },
-    // Konten Games (Tabel, Search, Filter)
+    { id: 'dataset', path: '/dataset', icon: '📁', label: 'Import Data' },
     { id: 'games', path: '/games', icon: '🎮', label: 'Games (Data)' },
-    // Konten Dashboard (Visualisasi & Analisis)
     { id: 'dashboard', path: '/dashboard', icon: '📊', label: 'Dashboard (Analisis)' }, 
   ];
 
