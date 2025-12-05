@@ -7,12 +7,14 @@ import os
 from werkzeug.utils import secure_filename
 from config import Config
 from data_processor.parser import parse_and_validate_data 
-import math # Diperlukan untuk cek NaN dan perhitungan batch
+from data_processor.analyzer import calculate_dashboard_stats 
+import pandas as pd
+import math 
+import csv # Diperlukan untuk Fitur Export CSV
 
 # --- Konfigurasi UPLOAD ---
 UPLOAD_FOLDER = 'uploads' 
 ALLOWED_EXTENSIONS = {'csv', 'xlsx'}
-# Ukuran batch untuk insert ke DB. Diatur rendah (100) untuk menghindari error max_allowed_packet.
 BATCH_SIZE = 100 
 
 # --- Inisialisasi Aplikasi ---
@@ -34,26 +36,22 @@ def get_db_connection():
             password=app.config['MYSQL_PASSWORD'],
             database=app.config['MYSQL_DB']
         )
-        # Koneksi berhasil, siap digunakan
         return conn
     except mysql.connector.Error as err:
-        # Mencetak error spesifik ke konsol untuk debugging
         print(f"Error connecting to MySQL: {err}") 
         return None
 
-# --- Fungsi Utility UPLOAD ---
+# --- Fungsi Utility Umum ---
+
 def allowed_file(filename):
     """Validasi format file"""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Fungsi helper untuk membersihkan NaN dari Pandas (Solusi untuk Error 1054: Unknown column 'nan')
 def clean_nan_to_none(value):
-    """Mengubah nilai NaN dari Pandas menjadi None yang diterima MySQL (NULL)."""
-    # Mengecek apakah nilainya adalah float dan merupakan NaN
+    """Mengubah nilai NaN dari Pandas menjadi None yang diterima MySQL (NULL) untuk menghindari Error 1054."""
     if isinstance(value, float) and math.isnan(value):
         return None
-    # Jika bukan NaN atau bukan float, kembalikan nilai aslinya
     return value
 
 def save_data_to_db(data):
@@ -74,7 +72,7 @@ def save_data_to_db(data):
     try:
         cursor = conn.cursor()
         
-        # 1. Konversi data menjadi list of tuples DENGAN CLEANING
+        # 1. Konversi data menjadi list of tuples DENGAN CLEANING (NaN -> None)
         values = [(
             clean_nan_to_none(d.get('name')), 
             clean_nan_to_none(d.get('price')), 
@@ -85,7 +83,7 @@ def save_data_to_db(data):
             clean_nan_to_none(d.get('description'))
         ) for d in data]
 
-        # 2. Implementasi Batch Insert untuk menghindari batasan max_allowed_packet
+        # 2. Implementasi Batch Insert (untuk menghindari batasan max_allowed_packet)
         num_batches = math.ceil(len(values) / BATCH_SIZE)
         
         for i in range(num_batches):
@@ -107,6 +105,67 @@ def save_data_to_db(data):
         conn.close()
         
     return total_inserted_count, "Data berhasil disimpan."
+
+
+def fetch_all_game_data(limit=None, offset=None, search=None, genre=None, review_type=None):
+    """Mengambil data game dengan filter dan pagination."""
+    conn = get_db_connection()
+    if not conn:
+        return None, "Gagal terhubung ke database."
+    
+    # Kueri dasar untuk mengambil semua kolom yang diperlukan untuk analisis/tabel
+    select_fields = "id, name, price, release_date, review_no, review_type, tags, description"
+    base_query = f"FROM games WHERE 1=1"
+    params = []
+    
+    # Fitur Pencarian Game (Fitur #7)
+    if search:
+        base_query += " AND name LIKE %s"
+        params.append(f"%{search}%")
+
+    # Fitur Filter Genre (Fitur #8)
+    if genre:
+        genres = [g.strip() for g in genre.split(',') if g.strip()]
+        for g in genres:
+            base_query += f" AND tags LIKE %s" 
+            params.append(f"%{g}%")
+            
+    # Fitur Filter Review Type (Fitur #8)
+    if review_type:
+        reviews = [r.strip() for r in review_type.split(',') if r.strip()]
+        if reviews:
+            placeholders = ', '.join(['%s'] * len(reviews))
+            base_query += f" AND review_type IN ({placeholders})"
+            params.extend(reviews)
+            
+    # Menghitung total data
+    count_query = "SELECT COUNT(id) AS total " + base_query
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(count_query, params)
+        total_records = cursor.fetchone()['total']
+        
+        data_query = f"SELECT {select_fields} " + base_query
+        
+        if limit is not None and offset is not None:
+            # Fitur Pagination (Fitur #6)
+            data_query += " ORDER BY id DESC LIMIT %s OFFSET %s"
+            params.extend([limit, offset])
+        else:
+            # Jika tidak ada limit/offset (misalnya untuk Export), ambil semua
+            data_query += " ORDER BY id DESC"
+        
+        cursor.execute(data_query, params)
+        data = cursor.fetchall()
+        
+        df = pd.DataFrame(data)
+        
+        return df, total_records, None
+    except Exception as e:
+        return None, 0, f"Gagal mengambil data dari database: {e}"
+    finally:
+        conn.close()
 
 
 # --- Rute Sederhana ---
@@ -173,5 +232,196 @@ def upload_dataset():
         return jsonify({"message": "Format file tidak valid. Gunakan CSV atau XLSX."}), 400
 
 
+# --- Rute Dashboard Statistik (Fitur #5) ---
+@app.route('/api/dashboard-stats', methods=['GET'])
+def get_dashboard_stats():
+    """
+    Mengambil data dari DB, melakukan analisis korelasi dan statistik, dan mengembalikan hasilnya.
+    """
+    # Mengambil semua data untuk analisis (limit=None, offset=None)
+    df, total_records, error = fetch_all_game_data(limit=None, offset=None)
+    
+    if error:
+        return jsonify({"message": error}), 500
+        
+    if df.empty:
+        return jsonify({"message": "Database kosong, unggah dataset terlebih dahulu."}), 200
+
+    try:
+        stats = calculate_dashboard_stats(df)
+        
+        response = {
+            "stats": stats['descriptive_stats'],
+            "correlation": stats['correlation_results'],
+            "genre_data": {
+                "distribution": stats['genre_distribution'], 
+                "avg_score": stats['genre_avg_score']       
+            }
+        }
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        print(f"Error during data analysis: {e}")
+        return jsonify({"message": f"Gagal melakukan analisis data: {e}"}), 500
+
+
+# --- Rute Data Tampilan, Pencarian, Filter, dan Pagination (Fitur #6, #7, #8) ---
+@app.route('/api/games/data', methods=['GET'])
+def get_games_data():
+    """
+    Endpoint serbaguna untuk mengambil data dengan filter, pencarian, dan pagination.
+    """
+    
+    # Ambil parameter query dari frontend
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int) 
+    search_term = request.args.get('search', '', type=str)
+    genre_filter = request.args.get('genre', '', type=str) 
+    review_filter = request.args.get('review_type', '', type=str) 
+    
+    offset = (page - 1) * per_page
+    
+    # Mengambil data dengan batasan limit dan offset
+    df, total_records, error = fetch_all_game_data(
+        limit=per_page, 
+        offset=offset, 
+        search=search_term, 
+        genre=genre_filter, 
+        review_type=review_filter
+    )
+    
+    if error:
+        return jsonify({"message": error}), 500
+        
+    total_pages = math.ceil(total_records / per_page) if total_records else 0
+    
+    return jsonify({
+        "data": df.to_dict('records'), # Mengubah DataFrame ke format list of dicts (JSON)
+        "pagination": {
+            "total_records": total_records,
+            "total_pages": total_pages,
+            "current_page": page,
+            "per_page": per_page
+        }
+    }), 200
+
+
+# --- Rute CRUD Game Tunggal (Fitur #3 & #4) ---
+
+# Fitur #3: Menambahkan Data Game
+@app.route('/api/games', methods=['POST'])
+def add_game():
+    """Endpoint untuk menambahkan satu record data game baru secara manual (Fitur #3)."""
+    data = request.get_json()
+    
+    if not all(k in data for k in ['name', 'price', 'release_date', 'review_no', 'review_type', 'tags', 'description']):
+        return jsonify({"message": "Input data game tidak lengkap."}), 400
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"message": "Gagal terhubung ke database."}), 500
+    
+    query = """
+    INSERT INTO games (name, price, release_date, review_no, review_type, tags, description)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """
+    
+    try:
+        cursor = conn.cursor()
+        values = (
+            data['name'], data['price'], data['release_date'], 
+            data['review_no'], data['review_type'], data['tags'], data['description']
+        )
+        
+        cursor.execute(query, values)
+        conn.commit()
+        game_id = cursor.lastrowid 
+        
+        return jsonify({"message": "Data game berhasil ditambahkan.", "id": game_id}), 201
+        
+    except mysql.connector.Error as err:
+        conn.rollback()
+        return jsonify({"message": f"Gagal menambahkan data ke database: {err}"}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        conn.close()
+
+# Fitur #4: Mengedit Data Game
+@app.route('/api/games/<int:game_id>', methods=['PUT'])
+def edit_game(game_id):
+    """Endpoint untuk mengubah record data game tertentu (Fitur #4)."""
+    data = request.get_json()
+    
+    if 'name' not in data or 'price' not in data: 
+        return jsonify({"message": "Data yang diubah tidak valid."}), 400
+
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"message": "Gagal terhubung ke database."}), 500
+    
+    query = """
+    UPDATE games 
+    SET name=%s, price=%s, release_date=%s, review_no=%s, 
+        review_type=%s, tags=%s, description=%s
+    WHERE id=%s
+    """
+    
+    try:
+        cursor = conn.cursor()
+        values = (
+            data['name'], data['price'], data['release_date'], 
+            data['review_no'], data['review_type'], data['tags'], data['description'],
+            game_id
+        )
+        
+        cursor.execute(query, values)
+        conn.commit()
+        
+        if cursor.rowcount == 0:
+            return jsonify({"message": "Game tidak ditemukan atau tidak ada perubahan."}), 404
+        
+        return jsonify({"message": f"Data game ID {game_id} berhasil diubah."}), 200
+        
+    except mysql.connector.Error as err:
+        conn.rollback()
+        return jsonify({"message": f"Gagal mengubah data di database: {err}"}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        conn.close()
+
+# Fitur #4: Menghapus Data Game
+@app.route('/api/games/<int:game_id>', methods=['DELETE'])
+def delete_game(game_id):
+    """Endpoint untuk menghapus record data game tertentu (Fitur #4)."""
+    
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"message": "Gagal terhubung ke database."}), 500
+    
+    query = "DELETE FROM games WHERE id = %s"
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query, (game_id,))
+        conn.commit()
+        
+        if cursor.rowcount == 0:
+            return jsonify({"message": "Game tidak ditemukan."}), 404
+            
+        return jsonify({"message": f"Data game ID {game_id} berhasil dihapus."}), 200
+        
+    except mysql.connector.Error as err:
+        conn.rollback()
+        return jsonify({"message": f"Gagal menghapus data dari database: {err}"}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        conn.close()
+
+
 if __name__ == '__main__':
+    # Server Flask berjalan di host:port 0.0.0.0:5000
     app.run(debug=True, host='0.0.0.0', port=5000)
